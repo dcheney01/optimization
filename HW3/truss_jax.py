@@ -1,7 +1,7 @@
-import numpy as np
+import jax.numpy as np
 from math import sin, cos, sqrt, pi
 
-def truss(A):
+def truss_jax(A, get_mass=False):
     """Computes mass and stress for the 10-bar truss problem
 
     Parameters
@@ -59,16 +59,21 @@ def truss(A):
 
         # insert submatrix into global matrix
         idx = node2idx([start[i], finish[i]], DOF)  # pass in the starting and ending node number for this element
-        K[np.ix_(idx, idx)] += Ksub
-        S[i, idx] = Ssub
+    
+        K = K.at[np.ix_(idx, idx)].add(Ksub)
+        # K[np.ix_(idx, idx)] += Ksub
+        S = S.at[i,idx].set(Ssub)
+        # S[i, idx] = Ssub
 
     # applied loads
     F = np.zeros((n*DOF, 1))
 
     for i in range(n):
         idx = node2idx([i+1], DOF)  # add 1 b.c. made indexing 1-based for convenience
-        F[idx[0]] = Fx[i]
-        F[idx[1]] = Fy[i]
+        F = F.at[idx[0]].set(Fx[i])
+        F = F.at[idx[1]].set(Fy[i])
+        # F[idx[0]] = Fx[i]
+        # F[idx[1]] = Fy[i]
 
 
     # boundary condition
@@ -86,7 +91,9 @@ def truss(A):
     # compute stress
     stress = np.dot(S, d).reshape(nbar)
 
-    return mass, stress
+    if get_mass:
+        return mass
+    return stress
 
 
 
